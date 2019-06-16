@@ -36,29 +36,30 @@ width = 180 # 60
 height = 138 # 50
 bytes_per_pixel = 3
 code = "\n" + <<~CODE + "\n__END__\n"
-.!if  eval %w(eva l( [DATA.b  i  n  m  o  d  e. r  e  a  d. c  h  a  r  s .m  a  p  {  |  a  |'%0  2  b'%( +a. o  r  d  &  3  )  }. j  o  i  n ,]. p  a  c  k 'b*'))*'';;
+.!if  eval %w(eva l( [DATA.b  i  n  m  o  d  e. r  e  a  d. c  h  a  r  s .m  a  p  {  |  a  |  a. o  r  d  [0 ]  }. j  o  i  n ,]. p  a  c  k 'b*'))*'';;
 CODE
-#0###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000
-#0                            10                            20                            30                            40                            50                            60
+#0###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000
+#0                            10                            20                            30                            40                            50
 image = ChunkyPNG::Image.from_file 'input.png'
 embedded_code = File.read 'code.rb'
 bits = embedded_code.unpack1('b*').chars
 
 data_size = BMP.data_size(width, height, bytes_per_pixel)
 embed_size = embedded_code.bytesize
-embed_max = (data_size - code.size) * 2 / 8
+embed_max = (data_size - code.size) / 8
 puts format('embed code: %d/%d %.1f%%', embed_size, embed_max, 100.0 * embed_size / embed_max)
+scale = [image.width.fdiv(width), image.height.fdiv(height)].min
 File.write 'out.bmp', [
   BMP.header(width, height, bytes_per_pixel),
   data_size.times.map do |i|
     next code[i] if i < code.size
     y, xpos = i.divmod data_size / height
     x, cidx = xpos.divmod 3
-    ix = ((x + 0.5) * image.width / width).floor
-    iy = ((height - y - 0.5) * image.height / height).floor
+    ix = ((x + 0.5) * scale).floor
+    iy = ((height - y - 0.5) * scale).floor
     color = x < width ? image[ix, iy] : 0
     col = (color >> (8 * (cidx + 1))) & 0xff
-    ((col & 0b11111100) | bits.shift(2).join.to_i(2)).chr
+    ((col & 0b11111100) | bits.shift(1).join.to_i(2)).chr
   end.join
 ].join
 raise "exceed #{bits.size.fdiv(8).ceil}" unless bits.empty?
