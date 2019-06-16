@@ -22,39 +22,43 @@ module BMP
 end
 
 [3, 4].each do |bpp|
-  whs = [*1..256].repeated_permutation(2).select do |w, h|
+  whs = [*1..256].repeated_permutation(2).map do |w, h|
+    next nil if bpp == 3 && w % 4 != 0
     filesize = BMP.header_size + BMP.data_size(w, h, bpp)
     s = BMP.int_to_byte4(filesize)
-    s =~ /^[&^>~]#/
-  end
-  p bpp
+    [w, h, s[0]] if s[1] == '#' && s[0] =~ /[\n -~]/
+  end.compact
+  puts bpp
   p whs.sort_by { |w, h| [w.fdiv(h), h.fdiv(w)].max }.take(20)
 end
 
-width = 60
-height = 50
+width = 180 # 60
+height = 138 # 50
 bytes_per_pixel = 3
 code = "\n" + <<~CODE + "\n__END__\n"
-aa if eval %w(ev al ([D AT A. bi nm od e. re ad.ch ar s .m ap {| a|'%0 3b'%( +a.or  d&+7 )}.jo in ,].pa ck 'b *' )) *'';;
+.! if eval %w(ev al ([D AT A. bi nm od e. re ad.ch ar s .m ap {| a|'%0 2b'%( +a.or  d&+3 )}.jo in ,].pa ck 'b *' )) *'';;
 CODE
 #0###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000
-p code
 
 image = ChunkyPNG::Image.from_file 'input.png'
-embedded_code = File.read 'code.rb' # 3300 bytes
+embedded_code = File.read 'code.rb'
 bits = embedded_code.unpack1('b*').chars
 
+data_size = BMP.data_size(width, height, bytes_per_pixel)
+embed_size = embedded_code.bytesize
+embed_max = (data_size - code.size) * 2 / 8
+puts format('embed code: %d/%d %.1f%%', embed_size, embed_max, 100.0 * embed_size / embed_max)
 File.write 'out.bmp', [
-  BMP.header(width, height),
-  (3 * width * height).times.map do |i|
+  BMP.header(width, height, bytes_per_pixel),
+  data_size.times.map do |i|
     next code[i] if i < code.size
-    pos, cidx = i.divmod 3
-    y, x = pos.divmod width
-    ix = ((x+0.5) * image.width / width).floor
+    y, xpos = i.divmod data_size / height
+    x, cidx = xpos.divmod 3
+    ix = ((x + 0.5) * image.width / width).floor
     iy = ((height - y - 0.5) * image.height / height).floor
-    color = image[ix, iy]
+    color = x < width ? image[ix, iy] : 0
     col = (color >> (8 * (cidx + 1))) & 0xff
-    ((col & 0xf8) | bits.shift(3).join.to_i(2)).chr
+    ((col & 0b11111100) | bits.shift(2).join.to_i(2)).chr
   end.join
 ].join
 raise "exceed #{bits.size.fdiv(8).ceil}" unless bits.empty?
