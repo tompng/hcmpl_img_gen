@@ -36,10 +36,10 @@ width = 180 # 60
 height = 138 # 50
 bytes_per_pixel = 3
 code = "\n" + <<~CODE + "\n__END__\n"
-.! if eval %w(ev al ([D AT A. bi nm od e. re ad.ch ar s .m ap {| a|'%0 2b'%( +a.or  d&+3 )}.jo in ,].pa ck 'b *' )) *'';;
+.!if  eval %w(eva l( [DATA.b  i  n  m  o  d  e. r  e  a  d. c  h  a  r  s .m  a  p  {  |  a  |'%0  2  b'%( +a. o  r  d  &  3  )  }. j  o  i  n ,]. p  a  c  k 'b*'))*'';;
 CODE
-#0###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000
-
+#0###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000
+#0                            10                            20                            30                            40                            50                            60
 image = ChunkyPNG::Image.from_file 'input.png'
 embedded_code = File.read 'code.rb'
 bits = embedded_code.unpack1('b*').chars
