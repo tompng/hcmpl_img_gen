@@ -44,6 +44,25 @@ class Canvas
       color[iy][ix]=(t+x*x+y*y+2*Math.sin(5*Math.atan2(y,x)+t))/3%1
     }}
   end
+  def ball(x,y,z,r,c)
+    x,y=((x-@camx+(y-@camy).i)*@rotxy).rect
+    y,z=((y+(z-@camz).i)*@rotz).rect
+    return if z<=0
+    x/=z
+    y/=z
+    r/=z
+    cx=width*(1+x)*0.5
+    cy=(y*width+height)*0.5
+    cr=r*width*0.5
+    ([cx-cr,0].max.ceil..[cx+cr,width-1].min.floor).each{|ix|
+      ([cy-cr,0].max.ceil..[cy+cr,height-1].min.floor).each{|iy|
+        if (ix-cx)**2+(iy-cy)**2<cr*cr && depth[iy][ix]>z
+          depth[iy][ix]=z
+          color[iy][ix]=c
+        end
+      }
+    }
+  end
   def triangle(a,b,c)
     a,b,c=[a,b,c].map{|p|
       x,y=((p[0]-@camx+(p[1]-@camy).i)*@rotxy).rect
@@ -125,7 +144,7 @@ def flower
       tris<<[b,c,d].map(&:dup) if c!=d
     }
   end
-  tris.each{|t|t.each{|p|
+  conv=->p{
     x,y,z=p
     a=Math::E**0.2i
     x,y=((x+y.i)*a).rect
@@ -135,21 +154,27 @@ def flower
     x,y=((x+y.i)*c).rect
     z+=1
     x-=1.4
+    y-=0.8
     p[0],p[1],p[2]=x,y,z
-  }}
-  tris
+  }
+  tris.each{|t|t.each(&conv)}
+  balls=5.times.map{[0.3*rand-0.15,0.3*rand-0.15,1.8,0.04, 0]}
+  balls<<[-0.1,0,1.9,0.06,1]
+  balls.each(&conv)
+  [tris,balls]
 end
 
-fl=flower
+fl,flb=flower
 
 c=Canvas.new(W,H)
 cnt=0
 loop{
   cnt+=1
   t=cnt*0.1
-  c.camera(Math.sin(t)*0.2,-3,3+Math.sin(1.4*t)*0.2, Math::PI/2+0.2*Math.sin(0.8*t),-0.5)
+  c.camera(Math.sin(t)*0.2,-3.5,3.5+Math.sin(1.4*t)*0.2, Math::PI/2+0.2*Math.sin(0.8*t),-0.5)
   c.clear 0.3
   fl.each{|tri|c.triangle *tri}
+  flb.each{|b|c.ball(*b)}
   # conv=->x,y{
   #   z=0.2*(Math.sin(4.1*x-3.2*y)+Math.cos(2.3*x-3.7*y))
   #   [1.2*x,1.2*y,z,Math.sin(4*z)*0.5+0.5]#.tap{|p|p[3]=0}
