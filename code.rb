@@ -25,8 +25,8 @@ class Canvas
     @color = height.times.map{width.times.map{1}}
     @depth = height.times.map{width.times.map{999}}
   end
-  def clear
-    color.each{|l|l.map!{1}}
+  def clear(c=1)
+    color.each{|l|l.map!{c}}
     depth.each{|l|l.map!{999}}
   end
   def camera(x,y,z,vxy,vz)
@@ -45,13 +45,11 @@ class Canvas
     }}
   end
   def triangle(a,b,c)
-    [a,b,c].each{|p|
+    a,b,c=[a,b,c].map{|p|
       x,y=((p[0]-@camx+(p[1]-@camy).i)*@rotxy).rect
       y,z=((y+(p[2]-@camz).i)*@rotz).rect
       return if z<=0
-      p[0]=x/z
-      p[1]=y/z
-      p[2]=z
+      [x/z,y/z,z,p[3]]
     }
     x0,x1=[a[0],b[0],c[0]].minmax
     ([width*(1+x0)*0.5,0].max.ceil..[width*(1+x1)*0.5,width-1].min).each{|ix|
@@ -100,37 +98,83 @@ class Canvas
   end
 end
 
+def flower
+  tris = []
+  require'pry'
+  fy=->x{(0.8+0.2*x)*((1-(2*x-1)**2)/4)**0.7}
+  fz=->x{2-1/(32*x*x+0.5)+x+(1-x*x)**0.5-1}
+  6.times do |i|
+    rot=(0.5+(3**0.5/2).i)**i
+    12.times{|j|
+      k=i%2
+      x1=j/12.0
+      x2=(j+1)/12.0
+      z1=fz[x1]-k*0.2*x1
+      z2=fz[x2]-k*0.2*x2
+      c1=0.4+0.6*j/12*(1-k*0.4)
+      c2=0.4+0.6*(j+1)/12*(1-k*0.4)
+      a=(x1+fy[x1].i*(1-k*0.1))*rot
+      b=(x1-fy[x1].i*(1-k*0.1))*rot
+      c=(x2+fy[x2].i*(1-k*0.1))*rot
+      d=(x2-fy[x2].i*(1-k*0.1))*rot
+      a=[*a.rect,z1,c1]
+      b=[*b.rect,z1,c1]
+      c=[*c.rect,z2,c2]
+      d=[*d.rect,z2,c2]
+      tris<<[a,b,c].map(&:dup) if a!=b
+      tris<<[b,c,d].map(&:dup) if c!=d
+    }
+  end
+  tris.each{|t|t.each{|p|
+    x,y,z=p
+    a=Math::E**0.2i
+    x,y=((x+y.i)*a).rect
+    b=Math::E**0.7i
+    x,z=((x+z.i)*b).rect
+    c=Math::E**2.2i
+    x,y=((x+y.i)*c).rect
+    z+=1
+    x-=1.4
+    p[0],p[1],p[2]=x,y,z
+  }}
+  tris
+end
+
+fl=flower
+
 c=Canvas.new(W,H)
 cnt=0
 loop{
   cnt+=1
-  t=cnt*0.01
-  c.camera(-2*Math.cos(t),-2*Math.sin(t),1.5,t,-0.5)
-  conv=->x,y{
-    z=0.2*(Math.sin(4.1*x-3.2*y)+Math.cos(2.3*x-3.7*y))
-    [1.2*x,1.2*y,z,Math.sin(4*z)*0.5+0.5].tap{|p|p[3]=0}
-  }
-  c.clear
-  num=20
-  num.times{|i|
-    num.times{|j|
-      c.triangle(conv[i*2.0/num-1,j*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
-      c.triangle(conv[(i+1)*2.0/num-1,(j+1)*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
-    }
-  }
+  t=cnt*0.1
+  c.camera(Math.sin(t)*0.2,-3,3+Math.sin(1.4*t)*0.2, Math::PI/2+0.2*Math.sin(0.8*t),-0.5)
+  c.clear 0.3
+  fl.each{|tri|c.triangle *tri}
+  # conv=->x,y{
+  #   z=0.2*(Math.sin(4.1*x-3.2*y)+Math.cos(2.3*x-3.7*y))
+  #   [1.2*x,1.2*y,z,Math.sin(4*z)*0.5+0.5]#.tap{|p|p[3]=0}
+  # }
+  # c.clear
+  # num=20
+  # num.times{|i|
+  #   num.times{|j|
+  #     c.triangle(conv[i*2.0/num-1,j*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
+  #     c.triangle(conv[(i+1)*2.0/num-1,(j+1)*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
+  #   }
+  # }
 
-  srand 0
-  gdx=-Math.sin(t)*0.04
-  gdy=Math.cos(t)*0.04
-  64.times{|i|
-    x=rand(-1..1.0)
-    y=rand(-1..1.0)
-    c.triangle(
-      conv[x-gdx,y-gdy],
-      conv[x,y].tap{|p|p[0]+=0.2*Math.sin(8*t);p[1]+=0.2*Math.cos(7*t);p[2]+=0.4;p[3]=1},
-      conv[x+gdx,y+gdy]
-    )
-  }
+  # srand 0
+  # gdx=-Math.sin(t)*0.04
+  # gdy=Math.cos(t)*0.04
+  # 64.times{|i|
+  #   x=rand(-1..1.0)
+  #   y=rand(-1..1.0)
+  #   c.triangle(
+  #     conv[x-gdx,y-gdy],
+  #     conv[x,y].tap{|p|p[0]+=0.2*Math.sin(8*t);p[1]+=0.2*Math.cos(7*t);p[2]+=0.4;p[3]=1},
+  #     conv[x+gdx,y+gdy]
+  #   )
+  # }
 
   c.show
   sleep 0.05
