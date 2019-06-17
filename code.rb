@@ -29,6 +29,14 @@ class Canvas
     color.each{|l|l.map!{1}}
     depth.each{|l|l.map!{999}}
   end
+  def camera(x,y,z,vxy,vz)
+    @camx=x
+    @camy=y
+    @camz=z
+    @rotxy = Math::E**(Math::PI/2-vxy).i
+    @rotz = Math::E**(Math::PI/2-vz).i
+  end
+
   def render(t)
     width.times{|ix|height.times{|iy|
       x=(2.0*ix-width)/height
@@ -37,8 +45,16 @@ class Canvas
     }}
   end
   def triangle(a,b,c)
+    [a,b,c].each{|p|
+      x,y=((p[0]-@camx+(p[1]-@camy).i)*@rotxy).rect
+      y,z=((y+(p[2]-@camz).i)*@rotz).rect
+      return if z<=0
+      p[0]=x/z
+      p[1]=y/z
+      p[2]=z
+    }
     x0,x1=[a[0],b[0],c[0]].minmax
-    ([(width*(1+x0)*0.5).ceil,0].max..[(width*(1+x1)*0.5).floor,width-1].min).each{|ix|
+    ([width*(1+x0)*0.5,0].max.ceil..[width*(1+x1)*0.5,width-1].min).each{|ix|
       x=ix*2.0/width-1
       ax=a[0]-x
       bx=b[0]-x
@@ -47,7 +63,8 @@ class Canvas
         ax*bx<=0?(ax*b[1]-bx*a[1]).fdiv(ax-bx):nil,
         bx*cx<=0?(bx*c[1]-cx*b[1]).fdiv(bx-cx):nil,
         cx*ax<=0?(cx*a[1]-ax*c[1]).fdiv(cx-ax):nil
-      ].compact.minmax
+      ].compact.reject(&:nan?).minmax rescue (require'pry';binding.pry)
+      next if y0.nil?
       vax = a[0]*a[2]
       vay = a[1]*a[2]
       vaz = a[2]
@@ -84,12 +101,37 @@ class Canvas
 end
 
 c=Canvas.new(W,H)
-t=Time.now
-c.triangle(
-  [-1, -1, 2, 0.8],
-  [-0.8, 0.5, 3, 0.3],
-  [1, 0.2, 4, 0.6]
-)
-t=Time.now-t
-c.show
-puts t
+cnt=0
+loop{
+  cnt+=1
+  t=cnt*0.01
+  c.camera(-2*Math.cos(t),-2*Math.sin(t),1.5,t,-0.5)
+  conv=->x,y{
+    z=0.2*(Math.sin(4.1*x-3.2*y)+Math.cos(2.3*x-3.7*y))
+    [1.2*x,1.2*y,z,Math.sin(4*z)*0.5+0.5].tap{|p|p[3]=0}
+  }
+  c.clear
+  num=20
+  num.times{|i|
+    num.times{|j|
+      c.triangle(conv[i*2.0/num-1,j*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
+      c.triangle(conv[(i+1)*2.0/num-1,(j+1)*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
+    }
+  }
+
+  srand 0
+  gdx=-Math.sin(t)*0.04
+  gdy=Math.cos(t)*0.04
+  64.times{|i|
+    x=rand(-1..1.0)
+    y=rand(-1..1.0)
+    c.triangle(
+      conv[x-gdx,y-gdy],
+      conv[x,y].tap{|p|p[0]+=0.2*Math.sin(8*t);p[1]+=0.2*Math.cos(7*t);p[2]+=0.4;p[3]=1},
+      conv[x+gdx,y+gdy]
+    )
+  }
+
+  c.show
+  sleep 0.05
+}
