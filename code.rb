@@ -1,5 +1,4 @@
 # rubocop:disable all
-require'pry'
 W = 120
 H = 80
 TABLE = [
@@ -196,7 +195,7 @@ renderfont=->c,t0{
   c.camera(0,0,0,Math::PI/2,-Math::PI/2)
   %w[HACKERS CHAMPLOO].each_with_index{|s,yi|
     s.chars.each_with_index{|ch,xi|
-      t = [1.5+(xi+4*yi)*0.04-t0,0].max
+      t = [2+(xi+4*yi)*0.04-t0,0].max
       next if t>1
       t*=t
       vx,vy,vz,r1,r2,r3=6.times.map{|k|Math.sin(123*~k*~xi*~yi)*4%1}
@@ -248,10 +247,10 @@ loop{
   }
   c.camera(*cam)
   sk=0.6/(1+0.5*camt)
-  if camt<1.7
+  if camt<1.9
     c.clear 0.4+(cam[4]+0.5)*2, t*10, 0.4/(1+camt), sk
   else
-    c.clear 0.6, t*10, [sk*(18-10*camt),0].max, sk
+    c.clear 0.6, t*10, sk*(20-10*camt), sk+0.25*(10*camt-19)
   end
   fl.each{|tri|c.triangle *tri.map(&conv)}
   flb.each{|b|c.ball(*conv[b] )}
