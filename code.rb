@@ -26,8 +26,7 @@ class Canvas
     @color = height.times.map{width.times.map{1}}
     @depth = height.times.map{width.times.map{999}}
   end
-  def clear(z,t)
-    sky=0.6
+  def clear(z,t,sky=0.6)
     sea=0.4
     depth.each{|l|l.map!{999}}
     width.times{|x|
@@ -139,8 +138,8 @@ def flower
       x2=(j+1)/12.0
       z1=fz[x1]-k*0.2*x1
       z2=fz[x2]-k*0.2*x2
-      c1=0.4+0.6*j/12*(1-k*0.4)
-      c2=0.4+0.6*(j+1)/12*(1-k*0.4)
+      c1=[0.4+0.7*j/12*(1-k*0.4),1].min
+      c2=[0.4+0.7*(j+1)/12*(1-k*0.4),1].min
       a=(x1+fy[x1].i*(1-k*0.1))*rot
       b=(x1-fy[x1].i*(1-k*0.1))*rot
       c=(x2+fy[x2].i*(1-k*0.1))*rot
@@ -160,8 +159,8 @@ def flower
     z1=i/8.0
     z2=(i+1)/8.0
     s=0.02
-    c=0.5
-    lc=0.4+0.2*i/8
+    c=0.3
+    lc=0.3+0.2*i/8
     tris<<[[-s,0,z1,c],[s,0,z1,c],[s,0,z2,c]]
     tris<<[[-s,0,z1,c],[s,0,z2,c],[-s,0,z2,c]]
     tris<<[[0,-s,z1,c],[0,s,z1,c],[0,s,z2,c]]
@@ -187,7 +186,7 @@ loop{
   t=cnt*0.01
   conv = ->p{
     x,y,z,*e=p
-    cdist=1.5+0.2*Math.sin(8*t)
+    cdist=1.5+0.1*Math.sin(8*t)
     r=cdist-x
     th=z/cdist
     x=cdist-r*Math.cos(th)
@@ -196,9 +195,18 @@ loop{
     [x-0.7,y-0.5,z,*e]
   }
 
-  th = Math::PI/2+t*0+0.8
-  c.camera(-1.2*Math.cos(th),-1.2*Math.sin(th),1.5,th,-0.5)
-  c.clear 0.4, t*10
+  th = Math::PI/2+0.8
+  cam1 = [-1.2*Math.cos(th),-1.2*Math.sin(th),1.5,th,-0.5]
+  cam2 = [-1.2*Math.cos(th*1.3)-0.3,-0.2-1.2*Math.sin(th*1.3),1.3,th*1.3,-0.3]
+  cam3 = [-1.2*Math.cos(th*1.6)+0.4,-0.4-1.2*Math.sin(th*1.6),0.8,th*1.6,0.1]
+  camt = Math.acos(Math.cos(Math::PI*t))/Math::PI*2
+  t6 = t**6
+  camt = 2*t6/(1+t6)
+  cam=cam1.zip(cam2,cam3).map{|a,b,c|
+    (1-camt)*(2-camt)/2*a+camt*(2-camt)*b+camt*(camt-1)/2*c
+  }
+  c.camera(*cam)
+  c.clear 0.4+(cam[4]+0.5)*2, t*10, 0.6/(1+camt)
   fl.each{|tri|c.triangle *tri.map(&conv)}
   flb.each{|b|c.ball(*conv[b] )}
 
