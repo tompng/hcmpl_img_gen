@@ -147,18 +147,17 @@ def flower
   tris.each{|t|t.each{|p|p[0]*=0.2;p[1]*=0.2;p[2]*=0.2;p[2]+=1}}
   balls=5.times.map{[0.06*rand-0.03,0.06*rand-0.03,1.36,0.008, 0]}
   balls<<[-0.02,0,1.38,0.012,1]
-  balls << [0,0,0,0.5,1]
   8.times{|i|
     z1=i/8.0
     z2=(i+1)/8.0
     s=0.02
     c=0.5
-    lc=0.7
+    lc=0.4+0.2*i/8
     tris<<[[-s,0,z1,c],[s,0,z1,c],[s,0,z2,c]]
     tris<<[[-s,0,z1,c],[s,0,z2,c],[-s,0,z2,c]]
     tris<<[[0,-s,z1,c],[0,s,z1,c],[0,s,z2,c]]
     tris<<[[0,-s,z1,c],[0,s,z2,c],[0,-s,z2,c]]
-    r=2**(2*i).i
+    r=2**(3*i).i
     l2=(r/3).rect
     l1=((0.4+0.2i)*r/3).rect
     l3=((0.4-0.2i)*r/3).rect
@@ -186,39 +185,40 @@ loop{
     x=cdist-r*Math.cos(th)
     z=r*Math.sin(th)
     x,z=(x+z.i).*(2.7**-0.2i).rect
-    [x-0.25,y,z,*e]
+    [x-0.7,y-0.5,z,*e]
   }
 
-  th = Math::PI/2+t
-  c.camera(-2*Math.cos(th),-2*Math.sin(th),2,th,-0.5)
+  th = Math::PI/2+t*0+0.8
+  c.camera(-1.2*Math.cos(th),-1.2*Math.sin(th),1.5,th,-0.5)
   c.clear 0.3
   fl.each{|tri|c.triangle *tri.map(&conv)}
   flb.each{|b|c.ball(*conv[b] )}
-  # conv=->x,y{
-  #   z=0.2*(Math.sin(4.1*x-3.2*y)+Math.cos(2.3*x-3.7*y))
-  #   [1.2*x,1.2*y,z,Math.sin(4*z)*0.5+0.5]#.tap{|p|p[3]=0}
-  # }
-  # c.clear
-  # num=20
-  # num.times{|i|
-  #   num.times{|j|
-  #     c.triangle(conv[i*2.0/num-1,j*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
-  #     c.triangle(conv[(i+1)*2.0/num-1,(j+1)*2.0/num-1],conv[i*2.0/num-1,(j+1)*2.0/num-1],conv[(i+1)*2.0/num-1,j*2.0/num-1])
-  #   }
-  # }
 
-  # srand 0
-  # gdx=-Math.sin(t)*0.04
-  # gdy=Math.cos(t)*0.04
-  # 64.times{|i|
-  #   x=rand(-1..1.0)
-  #   y=rand(-1..1.0)
-  #   c.triangle(
-  #     conv[x-gdx,y-gdy],
-  #     conv[x,y].tap{|p|p[0]+=0.2*Math.sin(8*t);p[1]+=0.2*Math.cos(7*t);p[2]+=0.4;p[3]=1},
-  #     conv[x+gdx,y+gdy]
-  #   )
-  # }
+  srand 0
+  gdx=-Math.sin(th)*0.05
+  gdy=Math.cos(th)*0.05
+  r=0.7
+  gpos=->x,y{[x-0.5,y,0.2-0.2*(x*x+y*y)/r/r,0.4]}
+  mdl=->a,b{a.zip(b).map{|a,b|(a+b)/2.0}}
+  128.times{|i|
+    x,y=(rand**0.7).*(Math::E**(2*Math::PI*rand).i).rect
+    gx0=0.2*rand
+    gy0=0.2*rand
+    gh=0.35+0.1*rand
+    a=0.6+0.6*rand
+    gx=0.05*a*Math.sin(8*t+2*x+1.3*y)
+    gy=0.05*a*Math.sin(7*t+2*y-1.2*x)
+    pa=gpos[x-gdx,y-gdy]
+    pb=gpos[x+gdx,y+gdy]
+    pe=mdl[pa,pb];pe[2]+=gh;pe[3]=0.8
+    pc=mdl[pa,pe];pd=mdl[pb,pe]
+    pe[0]+=gx0+gx;pe[0]+=gy0+gy
+    pc[0]+=gx0/2+gx/4;pc[0]+=gy0/2+gy/4
+    pd[0]+=gx0/2+gx/4;pd[0]+=gy0/2+gy/4
+    c.triangle(pa,pb,pc)
+    c.triangle(pb,pc,pd)
+    c.triangle(pc,pd,pe)
+  }
 
   c.show
   sleep 0.05
