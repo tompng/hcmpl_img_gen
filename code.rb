@@ -26,9 +26,18 @@ class Canvas
     @color = height.times.map{width.times.map{1}}
     @depth = height.times.map{width.times.map{999}}
   end
-  def clear(c=1)
-    color.each{|l|l.map!{c}}
+  def clear(z,t)
+    sky=0.6
+    sea=0.4
     depth.each{|l|l.map!{999}}
+    width.times{|x|
+      y1=(Math.sin(x*0.16-t)+Math.sin(x*0.23-t))*2+z*height
+      y2=(Math.sin(x*0.14-t)+Math.sin(x*0.16+t))*2+z*height
+      y3=(Math.sin(x*0.23+t)+Math.sin(x*0.17+t))*2+z*height
+      height.times{|y|
+        color[y][x]=sky+(sea-sky)*[y1,y2,y3].count{|yy|y>yy}/3.0
+      }
+    }
   end
   def camera(x,y,z,vxy,vz)
     @camx=x
@@ -176,7 +185,6 @@ cnt=0
 loop{
   cnt+=1
   t=cnt*0.01
-
   conv = ->p{
     x,y,z,*e=p
     cdist=1.5+0.2*Math.sin(8*t)
@@ -190,7 +198,7 @@ loop{
 
   th = Math::PI/2+t*0+0.8
   c.camera(-1.2*Math.cos(th),-1.2*Math.sin(th),1.5,th,-0.5)
-  c.clear 0.3
+  c.clear 0.4, t*10
   fl.each{|tri|c.triangle *tri.map(&conv)}
   flb.each{|b|c.ball(*conv[b] )}
 
@@ -198,13 +206,20 @@ loop{
   gdx=-Math.sin(th)*0.05
   gdy=Math.cos(th)*0.05
   r=0.7
-  gpos=->x,y{[x-0.5,y,0.2-0.2*(x*x+y*y)/r/r,0.4]}
+  gpos=->x,y{[x-0.3,y,0.1-0.2*(x*x+y*y)/r/r+0.05*Math.cos(x*7+y*8),0]}
   mdl=->a,b{a.zip(b).map{|a,b|(a+b)/2.0}}
-  128.times{|i|
-    x,y=(rand**0.7).*(Math::E**(2*Math::PI*rand).i).rect
-    gx0=0.2*rand
-    gy0=0.2*rand
-    gh=0.35+0.1*rand
+  10.times{|i|10.times{|j|
+    x0=2.0*i/9-1;x1=x0+2/9.0
+    y0=2.0*j/9-1;y1=y0+2/9.0
+    x0*=r;x1*=r;y0*=r;y1*=r
+    c.triangle(gpos[x0,y0],gpos[x1,y0],gpos[x0,y1])
+    c.triangle(gpos[x1,y1],gpos[x1,y0],gpos[x0,y1])
+  }}
+  64.times{|i|
+    x,y=(r*rand**0.7).*(Math::E**(2*Math::PI*rand).i).rect
+    gx0=0.1+0.1*rand
+    gy0=0.1+0.1*rand
+    gh=0.4+0.1*rand
     a=0.6+0.6*rand
     gx=0.05*a*Math.sin(8*t+2*x+1.3*y)
     gy=0.05*a*Math.sin(7*t+2*y-1.2*x)
@@ -219,7 +234,18 @@ loop{
     c.triangle(pb,pc,pd)
     c.triangle(pc,pd,pe)
   }
-
+  gpos2=->x,y{
+    z=0.7-3.2*((1+x*x+y*y)**0.5-1)+Math.sin(6*x+4*y)*0.1
+    x=0.4+1.6*x
+    y=2.5+1.6*y
+    [x,y,z,0.3+0.3*Math.sin(z)]
+  }
+  16.times{|i|16.times{|j|
+    x0=2.0*i/15-1;x1=x0+2/15.0
+    y0=2.0*j/15-1;y1=y0+2/15.0
+    c.triangle(gpos2[x0,y0],gpos2[x1,y0],gpos2[x0,y1])
+    c.triangle(gpos2[x1,y1],gpos2[x1,y0],gpos2[x0,y1])
+  }}
   c.show
   sleep 0.05
 }
