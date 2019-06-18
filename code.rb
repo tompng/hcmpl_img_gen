@@ -198,7 +198,7 @@ loop{
   th = Math::PI/2+0.8
   cam1 = [-1.2*Math.cos(th),-1.2*Math.sin(th),1.5,th,-0.5]
   cam2 = [-1.2*Math.cos(th*1.3)-0.3,-0.2-1.2*Math.sin(th*1.3),1.3,th*1.3,-0.3]
-  cam3 = [-1.2*Math.cos(th*1.6)+0.4,-0.4-1.2*Math.sin(th*1.6),0.8,th*1.6,0.1]
+  cam3 = [-1.2*Math.cos(th*1.6)+0.4,-0.4-1.2*Math.sin(th*1.6),0.9,th*1.6,0.1]
   camt = Math.acos(Math.cos(Math::PI*t))/Math::PI*2
   t6 = t**6
   camt = 2*t6/(1+t6)
