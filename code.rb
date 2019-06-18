@@ -1,3 +1,4 @@
+require'pry'
 W = 120
 H = 80
 TABLE = [
@@ -48,9 +49,9 @@ class Canvas
     x,y=((x-@camx+(y-@camy).i)*@rotxy).rect
     y,z=((y+(z-@camz).i)*@rotz).rect
     return if z<=0
-    x/=z
-    y/=z
-    r/=z
+    x*=2/z
+    y*=2/z
+    r*=2/z
     cx=width*(1+x)*0.5
     cy=(y*width+height)*0.5
     cr=r*width*0.5
@@ -68,7 +69,7 @@ class Canvas
       x,y=((p[0]-@camx+(p[1]-@camy).i)*@rotxy).rect
       y,z=((y+(p[2]-@camz).i)*@rotz).rect
       return if z<=0
-      [x/z,y/z,z,p[3]]
+      [x/z*2,y/z*2,z,p[3]]
     }
     x0,x1=[a[0],b[0],c[0]].minmax
     ([width*(1+x0)*0.5,0].max.ceil..[width*(1+x1)*0.5,width-1].min).each{|ix|
@@ -80,7 +81,7 @@ class Canvas
         ax*bx<=0?(ax*b[1]-bx*a[1]).fdiv(ax-bx):nil,
         bx*cx<=0?(bx*c[1]-cx*b[1]).fdiv(bx-cx):nil,
         cx*ax<=0?(cx*a[1]-ax*c[1]).fdiv(cx-ax):nil
-      ].compact.reject(&:nan?).minmax rescue (require'pry';binding.pry)
+      ].compact.reject(&:nan?).minmax
       next if y0.nil?
       vax = a[0]*a[2]
       vay = a[1]*a[2]
@@ -119,7 +120,6 @@ end
 
 def flower
   tris = []
-  require'pry'
   fy=->x{(0.8+0.2*x)*((1-(2*x-1)**2)/4)**0.7}
   fz=->x{2-1/(32*x*x+0.5)+x+(1-x*x)**0.5-1}
   6.times do |i|
@@ -144,25 +144,31 @@ def flower
       tris<<[b,c,d].map(&:dup) if c!=d
     }
   end
-  conv=->p{
-    x,y,z=p
-    a=Math::E**0.2i
-    x,y=((x+y.i)*a).rect
-    b=Math::E**0.7i
-    x,z=((x+z.i)*b).rect
-    c=Math::E**2.2i
-    x,y=((x+y.i)*c).rect
-    z+=1
-    x-=1.4
-    y-=0.8
-    p[0],p[1],p[2]=x,y,z
+  tris.each{|t|t.each{|p|p[0]*=0.2;p[1]*=0.2;p[2]*=0.2;p[2]+=1}}
+  balls=5.times.map{[0.06*rand-0.03,0.06*rand-0.03,1.36,0.008, 0]}
+  balls<<[-0.02,0,1.38,0.012,1]
+  balls << [0,0,0,0.5,1]
+  8.times{|i|
+    z1=i/8.0
+    z2=(i+1)/8.0
+    s=0.02
+    c=0.5
+    lc=0.7
+    tris<<[[-s,0,z1,c],[s,0,z1,c],[s,0,z2,c]]
+    tris<<[[-s,0,z1,c],[s,0,z2,c],[-s,0,z2,c]]
+    tris<<[[0,-s,z1,c],[0,s,z1,c],[0,s,z2,c]]
+    tris<<[[0,-s,z1,c],[0,s,z2,c],[0,-s,z2,c]]
+    r=2**(2*i).i
+    l2=(r/3).rect
+    l1=((0.4+0.2i)*r/3).rect
+    l3=((0.4-0.2i)*r/3).rect
+    lz1=z1+0.125
+    tris<<[[0,0,z1,lc],[*l1,lz1,lc],[*l3,lz1,lc]]
+    tris<<[[*l1,lz1,lc],[*l3,lz1,lc],[*l2,z1+0.25,lc]]
   }
-  tris.each{|t|t.each(&conv)}
-  balls=5.times.map{[0.3*rand-0.15,0.3*rand-0.15,1.8,0.04, 0]}
-  balls<<[-0.1,0,1.9,0.06,1]
-  balls.each(&conv)
   [tris,balls]
 end
+
 
 fl,flb=flower
 
@@ -170,11 +176,24 @@ c=Canvas.new(W,H)
 cnt=0
 loop{
   cnt+=1
-  t=cnt*0.1
-  c.camera(Math.sin(t)*0.2,-3.5,3.5+Math.sin(1.4*t)*0.2, Math::PI/2+0.2*Math.sin(0.8*t),-0.5)
+  t=cnt*0.01
+
+  conv = ->p{
+    x,y,z,*e=p
+    cdist=1.5+0.2*Math.sin(8*t)
+    r=cdist-x
+    th=z/cdist
+    x=cdist-r*Math.cos(th)
+    z=r*Math.sin(th)
+    x,z=(x+z.i).*(2.7**-0.2i).rect
+    [x-0.25,y,z,*e]
+  }
+
+  th = Math::PI/2+t
+  c.camera(-2*Math.cos(th),-2*Math.sin(th),2,th,-0.5)
   c.clear 0.3
-  fl.each{|tri|c.triangle *tri}
-  flb.each{|b|c.ball(*b)}
+  fl.each{|tri|c.triangle *tri.map(&conv)}
+  flb.each{|b|c.ball(*conv[b] )}
   # conv=->x,y{
   #   z=0.2*(Math.sin(4.1*x-3.2*y)+Math.cos(2.3*x-3.7*y))
   #   [1.2*x,1.2*y,z,Math.sin(4*z)*0.5+0.5]#.tap{|p|p[3]=0}
