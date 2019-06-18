@@ -41,7 +41,8 @@ CODE
 #0###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000###222###444###666###888###000
 #0                            10                            20                            30                            40                            50
 image = ChunkyPNG::Image.from_file 'input.png'
-embedded_code = File.read 'code.rb'
+embedded_code = File.read('code.rb')
+embedded_code = embedded_code.lines.map{|a|a.gsub(/^ +(#.*)?/,'')}.join
 bits = embedded_code.unpack1('b*').chars
 
 data_size = BMP.data_size(width, height, bytes_per_pixel)
