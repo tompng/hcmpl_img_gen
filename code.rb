@@ -134,7 +134,7 @@ class Canvas
     }
   end
   def show
-    puts "\e[1;1H"+color.each_slice(2).map{|a,b|a.zip(b).map{|a,b|TABLE[a*15.9][b*15.9]}*''}*$/
+    $><< "\e[1;1H"+color.each_slice(2).map{|a,b|a.zip(b).map{|a,b|TABLE[a*15.9][b*15.9]}*''}*$/
   end
 end
 
